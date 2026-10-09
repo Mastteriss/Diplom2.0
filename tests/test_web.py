@@ -725,3 +725,83 @@ def test_empty_database_pages_and_exports(web_empty):
     assert defects.content.decode("utf-8-sig").splitlines() == [
         ";".join(DEFECTS_HEADER)
     ]
+
+
+# --- Шапка сайта: содержимое бренда и активный пункт меню (регрессия) --------
+#
+# Рестайлинг шапки (Avito-кнопки, отказ от подзаголовка) идёт параллельно,
+# поэтому проверяются только текст и HTML-атрибуты в регионе ``<header>``:
+# ни имён CSS-классов, ни цветов, ни app.css.
+
+BRAND_TITLE = "ИС анализа качества продукции"
+BRAND_SUBTITLE = "Анализ качества выпускаемой продукции"
+NAV_LABELS = (
+    "Главная",
+    "Продукция",
+    "Партии",
+    "Дефекты",
+    "Динамика",
+    "Контроль процесса",
+    "Настройки",
+)
+
+
+def _header_region(text: str) -> str:
+    """Срез HTML от ``<header`` до ``</header>`` включительно.
+
+    Имена элементов фиксированы контрактом шапки; ограничение регионом
+    нужно, чтобы проверки не цеплялись за слова в теле страницы.
+    """
+    start = text.find("<header")
+    end = text.find("</header>")
+    assert start != -1, "страница не содержит <header>"
+    assert end != -1 and end > start, "страница не содержит </header>"
+    return text[start : end + len("</header>")]
+
+
+def _nav_link(header: str, label: str) -> str:
+    """Полный фрагмент ``<a …>…</a>`` с указанной подписью в шапке."""
+    links = re.findall(r"<a\b[^>]*>.*?</a>", header, flags=re.S)
+    matched = [link for link in links if label in link]
+    assert len(matched) == 1, (
+        f"ожидалась ровно одна ссылка «{label}» в шапке, найдено {len(matched)}"
+    )
+    return matched[0]
+
+
+def test_index_header_brand_nav_and_active_link(web):
+    """Шапка «/»: название бренда без подзаголовка, все 7 пунктов меню
+    и ровно один активный пункт — «Главная» (href="/")."""
+    client, _ = web
+    resp = client.get("/")
+    assert resp.status_code == 200
+
+    header = _header_region(resp.text)
+
+    # Бренд: заголовок на месте, подзаголовок из шапки убран.
+    assert BRAND_TITLE in header
+    assert BRAND_SUBTITLE not in header
+
+    # Полный набор пунктов навигации.
+    for label in NAV_LABELS:
+        assert label in header, f"нет пункта меню «{label}» в шапке"
+
+    # Активен ровно один пункт, и это «Главная» со ссылкой на "/".
+    assert header.count('aria-current="page"') == 1
+    home = _nav_link(header, "Главная")
+    assert 'aria-current="page"' in home
+    assert 'href="/"' in home
+
+
+def test_products_header_active_link(web):
+    """Шапка «/products»: единственный активный пункт — «Продукция»."""
+    client, _ = web
+    resp = client.get("/products")
+    assert resp.status_code == 200
+
+    header = _header_region(resp.text)
+    assert header.count('aria-current="page"') == 1
+
+    products = _nav_link(header, "Продукция")
+    assert 'aria-current="page"' in products
+    assert 'href="/products"' in products
