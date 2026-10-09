@@ -112,7 +112,7 @@ code {
   display: inline-block;
   padding: 8px 14px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   font-size: 14px;
@@ -419,7 +419,7 @@ h4 {
   gap: 6px;
   padding: 10px 22px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
@@ -702,7 +702,7 @@ select:focus {
   gap: 6px;
   padding: 7px 15px;
   border: 1px solid var(--c-mid);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--card);
   color: var(--text);
   font-size: 14px;
@@ -761,7 +761,7 @@ select:focus {
   display: inline-block;
   padding: 8px 17px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--card);
   color: var(--text);
   font-size: 14px;
