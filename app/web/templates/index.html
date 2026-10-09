@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pct, num, empty with context %}
+
+{% block content %}
+<p class="lead">Показатели за период с {{ since }} по {{ until }}.</p>
+
+<section class="kpi-grid" aria-label="Ключевые показатели">
+  <div class="kpi-card">
+    <span class="kpi-label">Всего партий</span>
+    <span class="kpi-value">{{ stats.get('batches_total', 0) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Ожидают приёмки</span>
+    <span class="kpi-value">{{ stats.get('batches_pending', 0) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Доля принятых партий</span>
+    <span class="kpi-value">{{ pct(stats.get('accepted_share')) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Доля дефектности</span>
+    <span class="kpi-value">{{ pct(stats.get('defect_rate')) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Индекс качества</span>
+    <span class="kpi-value">{{ num(stats.get('index_overall')) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Зарегистрировано актов ОТК</span>
+    <span class="kpi-value">{{ stats.get('inspections_count', 0) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Активная продукция</span>
+    <span class="kpi-value">{{ stats.get('products_active', 0) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Критичных параметров</span>
+    <span class="kpi-value">{{ stats.get('parameters_critical', 0) }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Основной дефект</span>
+    <span class="kpi-value kpi-value-text">
+      {%- if stats.get('top_defect_name') -%}
+        {{ stats.get('top_defect_name') }} ({{ stats.get('top_defect_qty', 0) }})
+      {%- else -%}—{% endif -%}
+    </span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Топ-5 дефектов за период</h2>
+  {% if top_defects %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Код</th>
+          <th scope="col">Дефект</th>
+          <th scope="col">Группа</th>
+          <th scope="col" class="num">Количество</th>
+          <th scope="col" class="num">Доля</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for defect in top_defects %}
+        <tr>
+          <td><code>{{ defect.code }}</code></td>
+          <td>{{ defect.name }}</td>
+          <td>{{ defect.group_name }}</td>
+          <td class="num">{{ defect.qty }}</td>
+          <td class="num">{{ pct(defect.share) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty('Нет данных о дефектах за выбранный период.') }}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Разделы системы</h2>
+  <ul class="quick-links">
+    <li><a href="/products">Справочник продукции</a></li>
+    <li><a href="/batches">Партии и акты ОТК</a></li>
+    <li><a href="/analysis/pareto">Анализ дефектов (Парето)</a></li>
+    <li><a href="/analysis/trends">Динамика качества</a></li>
+    <li><a href="/analysis/spc">Статистический контроль процесса</a></li>
+    <li><a href="/config/weights">Настройки индекса качества</a></li>
+    <li><a href="/export/batches.csv">Выгрузка партий (CSV)</a></li>
+    <li><a href="/export/defects.csv">Выгрузка дефектов (CSV)</a></li>
+  </ul>
+</section>
+{% endblock %}

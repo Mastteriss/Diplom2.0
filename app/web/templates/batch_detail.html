@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty, num with context %}
+
+{% block content %}
+<p class="lead">
+  <a href="/batches">← К списку партий</a>
+</p>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Партия <code>{{ batch.batch_no }}</code></h2>
+    <a class="btn btn-primary" href="/batches/{{ batch.id }}/inspections/new">Регистрация акта ОТК</a>
+  </div>
+  <dl class="props">
+    <div class="prop">
+      <dt>Продукция</dt>
+      <dd><a href="/products/{{ batch.product_id }}">{{ batch.get('product_sku') }} — {{ batch.get('product_name') }}</a></dd>
+    </div>
+    <div class="prop"><dt>Линия</dt><dd>{{ batch.line or '—' }}</dd></div>
+    <div class="prop"><dt>Произведено</dt><dd>{{ batch.produced_qty }}</dd></div>
+    <div class="prop"><dt>Дата выпуска</dt><dd>{{ batch.produced_at }}</dd></div>
+    <div class="prop"><dt>Статус</dt><dd>{{ status_badge(batch.status) }}</dd></div>
+  </dl>
+</section>
+
+<section class="card">
+  <h2>Акты ОТК</h2>
+  {% for inspection in inspections %}
+  <article class="act">
+    <h3>Акт №{{ inspection.get('id') }} от {{ inspection.get('inspected_at') }}</h3>
+    <dl class="props">
+      <div class="prop"><dt>Инспектор</dt><dd>{{ inspection.get('inspector') }}</dd></div>
+      <div class="prop"><dt>Выборка</dt><dd>{{ inspection.get('sample_qty') }}</dd></div>
+      <div class="prop"><dt>Принято</dt><dd>{{ inspection.get('accepted_qty') }}</dd></div>
+      <div class="prop"><dt>Отклонено</dt><dd>{{ inspection.get('rejected_qty') }}</dd></div>
+      <div class="prop"><dt>Результат</dt><dd>{{ status_badge(inspection.get('result')) }}</dd></div>
+    </dl>
+
+    {% set defect_rows = defects_map.get(inspection.get('id'), []) %}
+    {% if defect_rows %}
+    <h4>Выявленные дефекты</h4>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Код</th>
+            <th scope="col">Дефект</th>
+            <th scope="col">Группа</th>
+            <th scope="col" class="num">Количество</th>
+            <th scope="col">Повтор</th>
+            <th scope="col">Примечание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for defect in defect_rows %}
+          <tr>
+            <td><code>{{ defect.get('code') }}</code></td>
+            <td>{{ defect.get('defect_name') or defect.get('name') }}</td>
+            <td>{{ defect.get('group_name') }}</td>
+            <td class="num">{{ defect.get('qty') }}</td>
+            <td>{% if defect.get('is_repeat') %}<span class="badge badge-partial">Да</span>{% else %}—{% endif %}</td>
+            <td>{{ defect.get('note') or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% set measurement_rows = measurements_map.get(inspection.get('id'), []) %}
+    {% if measurement_rows %}
+    <h4>Измерения параметров</h4>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Параметр</th>
+            <th scope="col">Ед. изм.</th>
+            <th scope="col" class="num">Значение</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for measurement in measurement_rows %}
+          <tr>
+            <td>
+              {{ measurement.get('parameter_name') or measurement.get('name') or measurement.get('code') }}
+              {% if measurement.get('code') %}<code>{{ measurement.get('code') }}</code>{% endif %}
+            </td>
+            <td>{{ measurement.get('unit') or '—' }}</td>
+            <td class="num">{{ num(measurement.get('value'), 4) if measurement.get('value') is not none else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </article>
+  {% else %}
+    {{ empty('По этой партии акты ОТК ещё не зарегистрированы.') }}
+  {% endfor %}
+</section>
+{% endblock %}

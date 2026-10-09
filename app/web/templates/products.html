@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty with context %}
+
+{% block content %}
+<form class="filter-form" method="get" action="/products">
+  <div class="filter-field">
+    <label for="q">Поиск</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Название или артикул">
+  </div>
+  <div class="filter-field">
+    <label for="category">Категория</label>
+    <select id="category" name="category">
+      <option value="">Все категории</option>
+      {% for item in categories %}
+      <option value="{{ item }}"{% if item == category %} selected{% endif %}>{{ item }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-actions">
+    <button class="btn btn-primary" type="submit">Найти</button>
+    {% if q or category %}
+    <a class="btn btn-ghost" href="/products">Сбросить</a>
+    {% endif %}
+  </div>
+</form>
+
+<section class="card">
+  <h2>Позиции продукции <span class="count-badge">{{ total }}</span></h2>
+  {% if products %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Артикул</th>
+          <th scope="col">Наименование</th>
+          <th scope="col">Категория</th>
+          <th scope="col">Ед. изм.</th>
+          <th scope="col">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td><a href="/products/{{ product.id }}"><code>{{ product.sku }}</code></a></td>
+          <td><a href="/products/{{ product.id }}">{{ product.name }}</a></td>
+          <td>{{ product.category }}</td>
+          <td>{{ product.unit }}</td>
+          <td>
+            {% if product.is_active %}
+            <span class="badge badge-accepted">Активна</span>
+            {% else %}
+            <span class="badge badge-pending">Снята с производства</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty('Продукция не найдена. Измените условия поиска или сбросьте фильтр.') }}
+  {% endif %}
+</section>
+
+{% include "pagination.html" %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pct, empty, filter_months with context %}
+
+{% block content %}
+<div class="toolbar">
+  {{ filter_months('/analysis/pareto', months) }}
+  <span class="toolbar-note">Период: с {{ since }} по {{ until }}</span>
+</div>
+
+<section class="card">
+  <h2>Диаграмма Парето</h2>
+  {% if result.rows %}
+  <div class="chart-box">
+    {{ pareto_chart(result, width=980, height=430)|safe }}
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Всего дефектов</span>
+      <span class="kpi-value">{{ result.total_qty }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Доля основного кода</span>
+      <span class="kpi-value">{{ pct(result.top_share) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Кодов дефектов</span>
+      <span class="kpi-value">{{ result.rows|length }}</span>
+    </div>
+  </div>
+  {% else %}
+    {{ empty('Нет данных о дефектах за выбранный период.') }}
+  {% endif %}
+</section>
+
+{% if result.rows %}
+<section class="card">
+  <h2>Классификация ABC</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Код</th>
+          <th scope="col">Дефект</th>
+          <th scope="col">Группа</th>
+          <th scope="col" class="num">Количество</th>
+          <th scope="col" class="num">Доля</th>
+          <th scope="col" class="num">Накопленная доля</th>
+          <th scope="col">ABC</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in result.rows %}
+        <tr>
+          <td><code>{{ row.code }}</code></td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.group_name }}</td>
+          <td class="num">{{ row.qty }}</td>
+          <td class="num">{{ pct(row.share) }}</td>
+          <td class="num">{{ pct(row.cumulative) }}</td>
+          <td><span class="badge badge-abc-{{ row.abc|lower }}">{{ row.abc }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

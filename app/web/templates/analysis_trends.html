@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pct, empty, filter_months with context %}
+
+{% block content %}
+<div class="toolbar">
+  {{ filter_months('/analysis/trends', months) }}
+  <span class="toolbar-note">Период: с {{ since }} по {{ until }}</span>
+</div>
+
+<section class="card">
+  <h2>Динамика показателей по месяцам</h2>
+  {% if points %}
+  <div class="chart-box">
+    {{ trend_chart(points, width=980, height=360)|safe }}
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Месяц</th>
+          <th scope="col" class="num">Партий</th>
+          <th scope="col" class="num">Доля дефектности</th>
+          <th scope="col" class="num">Доля принятых партий</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for point in points %}
+        <tr>
+          <td>{{ point.month }}</td>
+          <td class="num">{{ point.batches }}</td>
+          <td class="num">{{ pct(point.defect_rate) }}</td>
+          <td class="num">{{ pct(point.accepted_share) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty('Нет данных о выпуске за выбранный период.') }}
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card error-card">
+  <p class="error-message">{{ message }}</p>
+  <div class="form-actions">
+    <a class="btn btn-primary" href="/">На главную</a>
+    <a class="btn btn-ghost" href="/batches">К списку партий</a>
+  </div>
+</div>
+{% endblock %}

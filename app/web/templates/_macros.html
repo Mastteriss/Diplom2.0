@@ -1,0 +1,37 @@
+{# Общие макеты интерфейса: бейджи, числа, пустые состояния, ошибки. #}
+{% macro status_badge(status) -%}
+<span class="badge badge-{{ status }}">{{ status_labels.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro pct(value, dp=1) -%}
+{%- if value is none -%}—{%- else -%}{{ ('%.' ~ dp ~ 'f')|format(value * 100) }} %{%- endif -%}
+{%- endmacro %}
+
+{% macro num(value, dp=3) -%}
+{%- if value is none -%}—{%- else -%}{{ ('%.' ~ dp ~ 'f')|format(value) }}{%- endif -%}
+{%- endmacro %}
+
+{% macro empty(text) -%}
+<p class="empty-state">{{ text }}</p>
+{%- endmacro %}
+
+{% macro error_list(errors) -%}
+{%- if errors %}
+<div class="alert alert-errors" role="alert">
+  <p class="alert-title">Форма заполнена с ошибками:</p>
+  <ul class="alert-items">
+    {%- for item in errors %}<li>{{ item }}</li>{% endfor -%}
+  </ul>
+</div>
+{%- endif %}
+{%- endmacro %}
+
+{% macro filter_months(action, months, param='') -%}
+<form class="months-form" method="get" action="{{ action }}">
+  {%- if param %}<input type="hidden" name="param" value="{{ param }}">{% endif -%}
+  <label class="months-label" for="months-input">Период, мес.</label>
+  <input id="months-input" class="months-input" type="number" name="months"
+         min="1" max="36" value="{{ months }}">
+  <button class="btn btn-secondary" type="submit">Применить</button>
+</form>
+{%- endmacro %}

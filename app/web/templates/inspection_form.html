@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import error_list, empty with context %}
+
+{% block content %}
+<p class="lead">
+  <a href="/batches/{{ batch.id }}">← К карточке партии</a>
+  · Партия <code>{{ batch.batch_no }}</code>,
+  {{ batch.get('product_sku') or '' }} {{ batch.get('product_name') or '' }}
+</p>
+
+{{ error_list(errors) }}
+
+<form class="stack-form" method="post" action="/batches/{{ batch.id }}/inspections/new">
+  <fieldset>
+    <legend>Данные акта</legend>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="inspector">Инспектор ОТК *</label>
+        <input id="inspector" type="text" name="inspector" maxlength="100"
+               required value="{{ values.get('inspector', '') }}" placeholder="Фамилия И.О.">
+      </div>
+      <div class="form-field">
+        <label for="inspected_at">Дата осмотра *</label>
+        <input id="inspected_at" type="date" name="inspected_at" required
+               value="{{ values.get('inspected_at') or today }}">
+      </div>
+      <div class="form-field">
+        <label for="sample_qty">Количество в выборке *</label>
+        <input id="sample_qty" type="number" name="sample_qty" min="1" step="1" required
+               value="{{ values.get('sample_qty', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="accepted_qty">Принято *</label>
+        <input id="accepted_qty" type="number" name="accepted_qty" min="0" step="1" required
+               value="{{ values.get('accepted_qty', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="rejected_qty">Отклонено *</label>
+        <input id="rejected_qty" type="number" name="rejected_qty" min="0" step="1" required
+               value="{{ values.get('rejected_qty', '') }}">
+      </div>
+    </div>
+    <p class="hint">Принято + отклонено = количество в выборке.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Учёт дефектов</legend>
+    {% if defects %}
+    <div class="form-grid form-grid-defects">
+      {% for defect in defects %}
+      <div class="form-field">
+        <label for="defect_{{ defect.code }}">{{ defect.name }}
+          <span class="hint-inline">{{ defect.code }} · {{ defect.group_name }}</span>
+        </label>
+        <input id="defect_{{ defect.code }}" type="number" name="defect_{{ defect.code }}"
+               min="0" step="1" value="{{ values.get('defect_' ~ defect.code, '') }}">
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      {{ empty('Справочник дефектов пуст.') }}
+    {% endif %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Измерения параметров</legend>
+    <p class="hint">Для каждого параметра укажите ровно 5 значений через запятую.
+      Пустые поля не проверяются.</p>
+    {% if parameters %}
+    <div class="form-grid form-grid-params">
+      {% for parameter in parameters %}
+      <div class="form-field">
+        <label for="param_{{ parameter.code }}">{{ parameter.name }}
+          <span class="hint-inline">{{ parameter.code }}{% if parameter.unit %} · {{ parameter.unit }}{% endif %}
+            {%- if parameter.is_critical %} · критичный{% endif %}</span>
+        </label>
+        <input id="param_{{ parameter.code }}" type="text" name="param_{{ parameter.code }}"
+               placeholder="0, 0, 0, 0, 0"
+               value="{{ values.get('param_' ~ parameter.code, '') }}">
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      {{ empty('Справочник контролируемых параметров пуст.') }}
+    {% endif %}
+  </fieldset>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Зарегистрировать акт</button>
+    <a class="btn btn-ghost" href="/batches/{{ batch.id }}">Отмена</a>
+  </div>
+</form>
+{% endblock %}

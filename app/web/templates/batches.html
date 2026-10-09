@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty with context %}
+
+{% block content %}
+<form class="filter-form" method="get" action="/batches">
+  <div class="filter-field">
+    <label for="status">Статус</label>
+    <select id="status" name="status">
+      <option value="">Любой статус</option>
+      {% for code in statuses %}
+      <option value="{{ code }}"{% if code == current_status %} selected{% endif %}>
+        {{ status_labels.get(code, code) }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="product_id">Продукция</label>
+    <select id="product_id" name="product_id">
+      <option value="">Вся продукция</option>
+      {% for product in products %}
+      <option value="{{ product.id }}"{% if product.id == current_product_id %} selected{% endif %}>
+        {{ product.sku }} — {{ product.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-actions">
+    <button class="btn btn-primary" type="submit">Применить</button>
+    {% if current_status or current_product_id %}
+    <a class="btn btn-ghost" href="/batches">Сбросить</a>
+    {% endif %}
+  </div>
+</form>
+
+<section class="card">
+  <h2>Выпущенные партии <span class="count-badge">{{ total }}</span></h2>
+  {% if batches %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Партия</th>
+          <th scope="col">Продукция</th>
+          <th scope="col">Линия</th>
+          <th scope="col" class="num">Произведено</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Статус</th>
+          <th scope="col" class="num">Актов ОТК</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for batch in batches %}
+        <tr>
+          <td><a href="/batches/{{ batch.id }}"><code>{{ batch.batch_no }}</code></a></td>
+          <td><a href="/products/{{ batch.product_id }}">{{ batch.product_sku }} — {{ batch.product_name }}</a></td>
+          <td>{{ batch.line }}</td>
+          <td class="num">{{ batch.produced_qty }}</td>
+          <td>{{ batch.produced_at }}</td>
+          <td>{{ status_badge(batch.status) }}</td>
+          <td class="num">{{ batch.inspections_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty('Партии по заданным условиям не найдены.') }}
+  {% endif %}
+</section>
+
+{% include "pagination.html" %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{# Постраничная навигация. Ожидает: page_base, page, total, total_pages,
+   has_prev, has_next. page_base уже содержит текущие query-параметры. #}
+{% if total > 0 %}
+<nav class="pagination" aria-label="Навигация по страницам">
+  {% if has_prev %}
+  <a class="page-btn" href="{{ page_base }}page={{ page - 1 }}">← Назад</a>
+  {% else %}
+  <span class="page-btn page-btn-disabled" aria-disabled="true">← Назад</span>
+  {% endif %}
+  <span class="page-info">Страница {{ page }} из {{ total_pages }}</span>
+  {% if has_next %}
+  <a class="page-btn" href="{{ page_base }}page={{ page + 1 }}">Вперёд →</a>
+  {% else %}
+  <span class="page-btn page-btn-disabled" aria-disabled="true">Вперёд →</span>
+  {% endif %}
+</nav>
+{% endif %}

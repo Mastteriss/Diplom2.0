@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% from "_macros.html" import num, empty, filter_months with context %}
+
+{% block content %}
+<div class="toolbar">
+  {{ filter_months('/analysis/spc', months, current_code) }}
+  <span class="toolbar-note">Период: с {{ since }} по {{ until }}</span>
+</div>
+
+{% if parameters %}
+<nav class="chip-row" aria-label="Выбор параметра">
+  {% for parameter in parameters %}
+  <a class="chip{% if parameter.code == current_code %} chip-active{% endif %}"
+     href="/analysis/spc?param={{ parameter.code }}&amp;months={{ months }}">
+    {{ parameter.name }} <code>{{ parameter.code }}</code>
+  </a>
+  {% endfor %}
+</nav>
+
+{% if result %}
+<section class="card">
+  <h2>{{ result.parameter.name }} <code>{{ result.parameter.code }}</code></h2>
+  <p class="lead">
+    {% if result.parameter.unit %}Ед. изм.: {{ result.parameter.unit }} · {% endif %}
+    {% if result.parameter.target is not none %}Номинал: {{ num(result.parameter.target, 3) }} · {% endif %}
+    {% if result.parameter.lsl is not none %}Нижний допуск: {{ num(result.parameter.lsl, 3) }} · {% endif %}
+    {% if result.parameter.usl is not none %}Верхний допуск: {{ num(result.parameter.usl, 3) }}{% endif %}
+    {% if result.parameter.lsl is none and result.parameter.usl is none and result.parameter.target is none %}Допуски не заданы.{% endif %}
+  </p>
+
+  {% if result.warnings %}
+  <ul class="warnings">
+    {% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">X̿ (центр карты)</span>
+      <span class="kpi-value">{{ num(result.cl, 4) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">UCL / LCL (X̄)</span>
+      <span class="kpi-value kpi-value-sm">{{ num(result.ucl, 4) }} / {{ num(result.lcl, 4) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">R̄</span>
+      <span class="kpi-value">{{ num(result.r_cl, 4) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">σ̂ = R̄ / d₂</span>
+      <span class="kpi-value">{{ num(result.sigma, 4) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Cp</span>
+      <span class="kpi-value">{{ num(result.cp, 3) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">
+        {% if result.cpk_side == 'upper' %}Cpu{% elif result.cpk_side == 'lower' %}Cpl{% else %}Cpk{% endif %}
+      </span>
+      <span class="kpi-value">{{ num(result.cpk, 3) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Модальная n</span>
+      <span class="kpi-value">{{ result.modal_n if result.modal_n is not none else '—' }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Подгрупп / исключено</span>
+      <span class="kpi-value">{{ result.points|length }} / {{ result.excluded_subgroups }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Нарушений на карте X̄</span>
+      <span class="kpi-value">{{ result.violation_count }}</span>
+    </div>
+  </div>
+
+  {% if result.points %}
+  <div class="chart-box">
+    {{ spc_chart(result, width=980, height=430)|safe }}
+  </div>
+  {% else %}
+    {{ empty('Нет измерений по параметру за выбранный период.') }}
+  {% endif %}
+</section>
+
+{% set violation_points = result.points|selectattr('violations')|list %}
+{% if violation_points %}
+<section class="card">
+  <h2>Нарушения на карте X̄</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">№</th>
+          <th scope="col">Подгруппа</th>
+          <th scope="col" class="num">x̄</th>
+          <th scope="col">Нарушение</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for point in violation_points %}
+        <tr>
+          <td class="num">{{ point.subgroup_no }}</td>
+          <td>{{ point.label }}</td>
+          <td class="num">{{ num(point.xbar, 4) }}</td>
+          <td>{{ point.violation_texts|join('; ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% else %}
+  {{ empty('Нет данных для построения контрольных карт по выбранным условиям.') }}
+{% endif %}
+
+{% else %}
+  {{ empty('Нет справочника контролируемых параметров.') }}
+{% endif %}
+{% endblock %}

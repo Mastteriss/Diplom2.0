@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros.html" import error_list with context %}
+
+{% block content %}
+<p class="lead">
+  Текущая конфигурация: версия {{ weights.version }}, обновлена
+  {{ weights.updated_at or '—' }} ({{ weights.updated_by or 'system' }}).
+</p>
+
+<section class="card">
+  <h2>Текущие веса критериев</h2>
+  <div class="chart-box chart-box-narrow">
+    {{ weight_bar(weights, width=520)|safe }}
+  </div>
+</section>
+
+{{ error_list(errors) }}
+
+<form class="stack-form" method="post" action="/config/weights">
+  <fieldset>
+    <legend>Веса критериев индекса</legend>
+    <p class="hint">Четыре веса должны быть неотрицательными и в сумме давать 1.
+      При расчёте они нормируются только над доступными критериями.</p>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="w_defect">Вес дефектности (defect)</label>
+        <input id="w_defect" type="text" inputmode="decimal" name="w_defect"
+               value="{{ values.get('w_defect', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="w_spec">Вес соответствия ТЗ (spec)</label>
+        <input id="w_spec" type="text" inputmode="decimal" name="w_spec"
+               value="{{ values.get('w_spec', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="w_repeat">Вес повторяемости (repeat)</label>
+        <input id="w_repeat" type="text" inputmode="decimal" name="w_repeat"
+               value="{{ values.get('w_repeat', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="w_clean">Вес чистых партий (clean)</label>
+        <input id="w_clean" type="text" inputmode="decimal" name="w_clean"
+               value="{{ values.get('w_clean', '') }}">
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Пороги расчёта</legend>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="defect_rate_cap">Порог дефектности (defect_rate_cap)</label>
+        <input id="defect_rate_cap" type="text" inputmode="decimal" name="defect_rate_cap"
+               value="{{ values.get('defect_rate_cap', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="repeat_rate_cap">Порог повторяемости (repeat_rate_cap)</label>
+        <input id="repeat_rate_cap" type="text" inputmode="decimal" name="repeat_rate_cap"
+               value="{{ values.get('repeat_rate_cap', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="min_sample">Минимальный размер выборки (min_sample)</label>
+        <input id="min_sample" type="number" min="0" step="1" name="min_sample"
+               value="{{ values.get('min_sample', '') }}">
+      </div>
+      <div class="form-field">
+        <label for="author">Автор правки *</label>
+        <input id="author" type="text" maxlength="100" name="author"
+               value="{{ values.get('author', '') }}" placeholder="Фамилия И.О.">
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Сохранить настройки</button>
+    <a class="btn btn-ghost" href="/config/weights">Сбросить</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pct, num, status_badge, empty with context %}
+
+{% block content %}
+<p class="lead">
+  <a href="/products">← К списку продукции</a>
+</p>
+
+<section class="card">
+  <h2>{{ product.name }}</h2>
+  <dl class="props">
+    <div class="prop"><dt>Артикул</dt><dd><code>{{ product.sku }}</code></dd></div>
+    <div class="prop"><dt>Категория</dt><dd>{{ product.category or '—' }}</dd></div>
+    <div class="prop"><dt>Единица измерения</dt><dd>{{ product.unit }}</dd></div>
+    <div class="prop">
+      <dt>Статус</dt>
+      <dd>
+        {% if product.is_active %}
+        <span class="badge badge-accepted">Активна</span>
+        {% else %}
+        <span class="badge badge-pending">Снята с производства</span>
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<section class="card">
+  <h2>Показатели периода</h2>
+  <p class="lead">Период: с {{ since }} по {{ until }}.</p>
+  {% if facts %}
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Проверено единиц (выборка)</span>
+      <span class="kpi-value">{{ facts.sample_qty }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Отклонено единиц</span>
+      <span class="kpi-value">{{ facts.rejected_qty }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Доля дефектности</span>
+      <span class="kpi-value">{{ pct((facts.rejected_qty / facts.sample_qty) if facts.sample_qty else None) }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Партий / без замечаний</span>
+      <span class="kpi-value">{{ facts.batches_total }} / {{ facts.batches_clean }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Зафиксировано дефектов</span>
+      <span class="kpi-value">{{ facts.defect_qty }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">В том числе повторных</span>
+      <span class="kpi-value">{{ facts.repeat_qty }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">В пределах допуска</span>
+      <span class="kpi-value">{{ facts.in_spec }} / {{ facts.with_specs }}</span>
+    </div>
+  </div>
+  {% else %}
+    {{ empty('Нет данных за выбранный период по этой позиции.') }}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Индекс качества</h2>
+  {% if index %}
+  <dl class="props">
+    <div class="prop"><dt>Значение</dt><dd class="prop-strong">{{ num(index.score) }}</dd></div>
+    <div class="prop"><dt>Статус</dt><dd>{{ {'ok': 'Норма', 'insufficient_data': 'Недостаточно данных', 'no_data': 'Нет данных'}.get(index.status, index.status) }}</dd></div>
+    <div class="prop"><dt>Доля дефектности</dt><dd>{{ pct(index.defect_rate) }}</dd></div>
+    <div class="prop"><dt>Проверено единиц</dt><dd>{{ index.sample_qty }}</dd></div>
+  </dl>
+  {% if index.notes %}
+  <p class="note">{{ index.notes }}</p>
+  {% endif %}
+  {% else %}
+    {{ empty('Индекс качества для позиции не рассчитан: нет данных за период.') }}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Последние партии</h2>
+  {% if recent_batches %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Партия</th>
+          <th scope="col">Линия</th>
+          <th scope="col" class="num">Произведено</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for batch in recent_batches %}
+        <tr>
+          <td><a href="/batches/{{ batch.id }}"><code>{{ batch.batch_no }}</code></a></td>
+          <td>{{ batch.line }}</td>
+          <td class="num">{{ batch.produced_qty }}</td>
+          <td>{{ batch.produced_at }}</td>
+          <td>{{ status_badge(batch.status) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="more"><a href="/batches?product_id={{ product.id }}">Все партии этой продукции →</a></p>
+  {% else %}
+    {{ empty('По этой позиции партии ещё не выпускались.') }}
+  {% endif %}
+</section>
+{% endblock %}
