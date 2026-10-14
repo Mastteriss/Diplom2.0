@@ -64,3 +64,6 @@ logs/
 .dmypy.json
 dmypy.json
 .ruff_cache/
+
+# Windows installer build artifact (built by packaging/build_installer.ps1)
+packaging/*.exe

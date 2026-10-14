@@ -16,7 +16,12 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+
+# --- Версия ---------------------------------------------------------------
+# Единый источник истины: подставляется в подвал шаблонов и в баннер запуска.
+APP_VERSION: str = "1.0.0"
 
 # --- Пути -----------------------------------------------------------------
 # APP_DIR — каталог app/, PROJECT_DIR — корень проекта (его родитель).
@@ -24,22 +29,62 @@ APP_DIR: Path = Path(__file__).resolve().parent
 PROJECT_DIR: Path = APP_DIR.parent
 
 ENV_DB_PATH: str = "DIPL2_DB"
-DEFAULT_DB_PATH: Path = PROJECT_DIR / "data" / "quality.sqlite3"
 
-TEMPLATES_DIR: Path = APP_DIR / "web" / "templates"
-STATIC_DIR: Path = APP_DIR / "web" / "static"
+
+def is_frozen() -> bool:
+    """True, если код запущен из сборки PyInstaller (onedir/onefile)."""
+    return bool(getattr(sys, "frozen", False))
+
+
+# Корень ресурсов только для чтения: в замороженной сборке — распакованный
+# каталог PyInstaller (sys._MEIPASS), иначе — корень проекта. Структура
+# каталогов сборки повторяет репозиторий (app/web/..., app/db/...), поэтому
+# пути к ресурсам ниже совпадают вне сборки с прежними значениями.
+RESOURCE_ROOT: Path = (
+    Path(getattr(sys, "_MEIPASS", PROJECT_DIR)) if is_frozen() else PROJECT_DIR
+)
+
+TEMPLATES_DIR: Path = RESOURCE_ROOT / "app" / "web" / "templates"
+STATIC_DIR: Path = RESOURCE_ROOT / "app" / "web" / "static"
+SCHEMA_PATH: Path = RESOURCE_ROOT / "app" / "db" / "schema.sql"
+
+
+def _frozen_data_dir() -> Path:
+    """Каталог данных замороженной сборки: ``%LOCALAPPDATA%\\DiplomQuality\\data``
+    с запасным вариантом ``~/.diplom-quality/data``, если LOCALAPPDATA не задан."""
+    local = (os.environ.get("LOCALAPPDATA") or "").strip()
+    if local:
+        return Path(local) / "DiplomQuality" / "data"
+    return Path.home() / ".diplom-quality" / "data"
+
+
+def _relative_db_root() -> Path:
+    """База для относительного DIPL2_DB. Вне сборки — PROJECT_DIR (как раньше).
+    В замороженной сборке PROJECT_DIR указывает внутрь read-only ``sys._MEIPASS``,
+    поэтому базой служит записываемый корень установленного приложения —
+    родитель каталога данных (``%LOCALAPPDATA%\\DiplomQuality``)."""
+    if is_frozen():
+        return _frozen_data_dir().parent
+    return PROJECT_DIR
+
+
+DEFAULT_DB_PATH: Path = (
+    _frozen_data_dir() / "quality.sqlite3"
+    if is_frozen()
+    else PROJECT_DIR / "data" / "quality.sqlite3"
+)
 
 
 def resolve_db_path() -> Path:
-    """Путь к файлу БД: значение DIPL2_DB (относительный путь — от PROJECT_DIR)
-    либо DEFAULT_DB_PATH. Ограничений на размещение нет: тесты указывают
-    временные каталоги."""
+    """Путь к файлу БД: значение DIPL2_DB (относительный путь — от
+    ``_relative_db_root()``) либо DEFAULT_DB_PATH. Ограничений на размещение
+    нет: тесты указывают временные каталоги."""
     raw = (os.environ.get(ENV_DB_PATH) or "").strip()
     if not raw:
         return DEFAULT_DB_PATH
     candidate = Path(raw)
     if not candidate.is_absolute():
-        candidate = PROJECT_DIR / candidate
+        candidate = _relative_db_root() / candidate
     return candidate.resolve()
 
 

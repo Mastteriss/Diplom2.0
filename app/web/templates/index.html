@@ -2,9 +2,15 @@
 {% from "_macros.html" import pct, num, empty with context %}
 
 {% block content %}
-<p class="lead">Показатели за период с {{ since }} по {{ until }}.</p>
+<p class="lead">Сводка по качеству за период с&nbsp;{{ since }} по&nbsp;{{ until }}.
+  Показатели рассчитаны по зарегистрированным актам&nbsp;ОТК.</p>
 
 <section class="kpi-grid" aria-label="Ключевые показатели">
+  <div class="kpi-card kpi-card-featured">
+    <span class="kpi-label">Индекс качества</span>
+    <span class="kpi-value kpi-value-xl">{{ num(stats.get('index_overall')) }}</span>
+    <span class="kpi-foot">Средневзвешенная оценка периода</span>
+  </div>
   <div class="kpi-card">
     <span class="kpi-label">Всего партий</span>
     <span class="kpi-value">{{ stats.get('batches_total', 0) }}</span>
@@ -20,10 +26,6 @@
   <div class="kpi-card">
     <span class="kpi-label">Доля дефектности</span>
     <span class="kpi-value">{{ pct(stats.get('defect_rate')) }}</span>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-label">Индекс качества</span>
-    <span class="kpi-value">{{ num(stats.get('index_overall')) }}</span>
   </div>
   <div class="kpi-card">
     <span class="kpi-label">Зарегистрировано актов ОТК</span>
@@ -48,12 +50,16 @@
 </section>
 
 <section class="card">
-  <h2>Топ-5 дефектов за период</h2>
+  <div class="section-head">
+    <h2>Топ-5 дефектов за период</h2>
+    <span class="section-note">Ранжирование по количеству</span>
+  </div>
   {% if top_defects %}
   <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
+          <th scope="col" class="num">№</th>
           <th scope="col">Код</th>
           <th scope="col">Дефект</th>
           <th scope="col">Группа</th>
@@ -64,11 +70,17 @@
       <tbody>
         {% for defect in top_defects %}
         <tr>
+          <td class="num rank">{{ loop.index }}</td>
           <td><code>{{ defect.code }}</code></td>
           <td>{{ defect.name }}</td>
           <td>{{ defect.group_name }}</td>
           <td class="num">{{ defect.qty }}</td>
-          <td class="num">{{ pct(defect.share) }}</td>
+          <td class="num">
+            <span class="share">
+              <span class="share-track"><span class="share-fill" style="width: {{ ((defect.share or 0) * 100)|round(1) }}%"></span></span>
+              <span class="share-val">{{ pct(defect.share) }}</span>
+            </span>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -80,7 +92,10 @@
 </section>
 
 <section class="card">
-  <h2>Разделы системы</h2>
+  <div class="section-head">
+    <h2>Разделы системы</h2>
+    <span class="section-note">Быстрый переход</span>
+  </div>
   <ul class="quick-links">
     <li><a href="/products">Справочник продукции</a></li>
     <li><a href="/batches">Партии и акты ОТК</a></li>

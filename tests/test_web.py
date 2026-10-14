@@ -26,11 +26,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import PROJECT_DIR
+from app.config import APP_VERSION, PROJECT_DIR
 from app.db import repositories
 from app.db.connection import init_db
 from app.domain.models import InspectionDraft
 from app.main import app
+from app.web.context import base_context
 
 ARTIFACTS_DIR: Path = PROJECT_DIR / "tests_artifacts"
 
@@ -759,6 +760,15 @@ def _header_region(text: str) -> str:
     return text[start : end + len("</header>")]
 
 
+def _footer_region(text: str) -> str:
+    """Срез HTML от ``<footer`` до ``</footer>`` включительно."""
+    start = text.find("<footer")
+    end = text.find("</footer>")
+    assert start != -1, "страница не содержит <footer>"
+    assert end != -1 and end > start, "страница не содержит </footer>"
+    return text[start : end + len("</footer>")]
+
+
 def _nav_link(header: str, label: str) -> str:
     """Полный фрагмент ``<a …>…</a>`` с указанной подписью в шапке."""
     links = re.findall(r"<a\b[^>]*>.*?</a>", header, flags=re.S)
@@ -805,3 +815,24 @@ def test_products_header_active_link(web):
     products = _nav_link(header, "Продукция")
     assert 'aria-current="page"' in products
     assert 'href="/products"' in products
+
+
+# --- Подвал: версия приложения (регрессия) ----------------------------------
+
+
+def test_base_context_includes_app_version(web):
+    """``base_context`` кладёт ``app_version`` из ``APP_VERSION`` (шов шаблонов)."""
+    _, conn = web
+    ctx = base_context(conn, active="home", page_title="Главная")
+    assert ctx["app_version"] == APP_VERSION
+
+
+def test_index_footer_shows_app_version(web):
+    """Отрендеренный подвал «/» содержит строку ``Версия <APP_VERSION>``."""
+    client, _ = web
+    resp = client.get("/")
+    assert resp.status_code == 200
+
+    footer = _footer_region(resp.text)
+    assert f"Версия {APP_VERSION}" in footer
+

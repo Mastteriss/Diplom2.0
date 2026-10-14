@@ -13,9 +13,13 @@ import sqlite3
 import threading
 from pathlib import Path
 
-from app.config import PROJECT_DIR, ensure_data_dir, resolve_db_path
+from app.config import (
+    PROJECT_DIR,
+    SCHEMA_PATH,
+    ensure_data_dir,
+    resolve_db_path,
+)
 
-SCHEMA_PATH: Path = Path(__file__).resolve().parent / "schema.sql"
 SCHEMA_VERSION: int = 1
 
 _local = threading.local()

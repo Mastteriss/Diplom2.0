@@ -51,6 +51,28 @@ FastAPI-приложение, маршруты, шаблоны и статика
 `app/config.py`, `app/domain/models.py`, `app/db/schema.sql` и
 `app/db/connection.py` используются всеми слоями и считаются частью контракта.
 
+## Упаковка (Windows)
+
+Код стал упаковочно-ориентированным:
+
+- `APP_VERSION` в `app/config.py` — единый источник версии (используется в шаблонах,
+  баннере запуска и при сборке установщика).
+- `is_frozen()` определяет запуск из сборки PyInstaller. `RESOURCE_ROOT` равен
+  `sys._MEIPASS` при замороженном запуске, иначе — `PROJECT_DIR`. Шаблоны, статика,
+  `schema.sql` и встроенный демо-файл БД разрешаются от `RESOURCE_ROOT`, поэтому
+  структура ресурсов в сборке совпадает с репозиторием.
+- При замороженном запуске `DEFAULT_DB_PATH` указывает в записываемый каталог
+  `%LOCALAPPDATA%\DiplomQuality\data\quality.sqlite3` (с резервом `~/.diplom-quality/data`),
+  а для относительного `DIPL2_DB` базой служит родитель этого каталога. Вне сборки
+  поведение сохранено: `DEFAULT_DB_PATH` — `PROJECT_DIR/data/quality.sqlite3`,
+  относительный `DIPL2_DB` разрешается от `PROJECT_DIR`.
+- `app/web/context.py::base_context()` теперь передаёт в шаблоны `app_version`
+  (берётся из `app.config.APP_VERSION`).
+- Лаунчер `packaging/run_diplom.py` подготавливает окружение (пути ресурсов,
+  `DIPL2_DB` через `--data-dir`), при отсутствии файла БД копирует встроенный образец
+  в пользовательский каталог, импортирует `app.main:app` как ASGI-объект и запускает
+  `uvicorn` (один воркер).
+
 ## Швы
 
 ### `render()` — шов рендеринга (B3)

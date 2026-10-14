@@ -33,6 +33,16 @@ docs/
   contract.md            замороженный контракт (источник истины)
   architecture.md        описание слоёв и швов
   adr/                   архитектурные решения
+packaging/
+  build.ps1              сборка PyInstaller onedir
+  build_installer.ps1    сборка Inno Setup 6 установщика
+  diplom.spec            спецификация PyInstaller
+  installer.iss          скрипт Inno Setup 6
+  run_diplom.py          лаунчер замороженной сборки
+  install.ps1            fallback-установщик (PowerShell)
+  uninstall.ps1          fallback-деинсталлятор (PowerShell)
+  README.md              заметки по упаковке (инструменты)
+  DiplomQuality-Setup-*.exe  собранный установщик (при наличии)
 tests/                   тесты pytest (4 файла)
 tests_artifacts/         тестовые БД (создаются и удаляются при тестах)
 pytest.ini               конфигурация pytest (testpaths = tests)
@@ -68,15 +78,100 @@ python -m scripts.generate_demo_data [--products 10] [--batches-per-product 18]
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Последний запуск: `124 passed, 1 warning`. Тестовые базы данных складываются
+Последний запуск: `134 passed, 1 warning`. Тестовые базы данных складываются
 в `tests_artifacts/` и удаляются при teardown (контракт §9); поставляемая БД
 `data/quality.sqlite3` при этом открывается read-only.
+
+## Сборка и установка (Windows)
+
+### Сборка бандла (PyInstaller onedir)
+
+Из корня проекта:
+
+```powershell
+.\packaging\build.ps1
+```
+
+Скрипт собирает замороженный бандл в `packaging\dist\DiplomQuality\DiplomQuality.exe`.
+При необходимости устанавливает PyInstaller в `.venv`.
+
+### Сборка установщика (Inno Setup 6)
+
+Требуется [Inno Setup 6](https://jrsoftware.org/isinfo.php). Скрипт читает `APP_VERSION`
+из `app.config` и автоматически запускает сборку бандла при его отсутствии.
+
+```powershell
+.\packaging\build_installer.ps1
+```
+
+Результат: `packaging\DiplomQuality-Setup-<версия>.exe` (например, `DiplomQuality-Setup-1.0.0.exe`).
+
+### Установка
+
+Запустите собранный установщик (`DiplomQuality-Setup-*.exe`). Установка **персональная**
+(без прав администратора), по умолчанию в `%LOCALAPPDATA%\Programs\DiplomQuality`.
+Создаётся ярлык в меню «Пуск» («ИС анализа качества продукции»), при желании — на рабочем столе
+(задача `desktopicon` не отмечена по умолчанию). После установки можно запустить приложение
+из меню «Пуск» или с рабочего стола.
+
+### Где живут пользовательские данные
+
+Пользовательские данные **никогда** не кладутся в каталог установки. Они находятся в
+`%LOCALAPPDATA%\DiplomQuality\data\quality.sqlite3`. При первом запуске `packaging\run_diplom.py`
+(он же используется в замороженной сборке) при отсутствии файла БД копирует из ресурсов
+встроенный демо-файл `data/quality.sqlite3` в этот каталог.
+
+### Обновление
+
+Обновление выполняется механически: увеличьте `APP_VERSION` в `app/config.py` (единственный
+источник версии), пересоберите бандл и установщик, запустите **новый** `DiplomQuality-Setup-*.exe`
+поверх старого. Установщик использует фиксированный `AppId`, поэтому файлы программы заменяются,
+а каталог `%LOCALAPPDATA%\DiplomQuality\data` остаётся нетронутым.
+
+### Удаление
+
+При удалении через установщик (Inno Setup) предлагается вопрос: удалить ли пользовательские данные.
+По умолчанию — **Нет** (данные сохраняются). Если ответить «Да», каталог
+`%LOCALAPPDATA%\DiplomQuality\data` будет удалён.
+
+### Fallback: PowerShell-установщик без Inno Setup
+
+Если Inno Setup 6 недоступен:
+
+```powershell
+.\packaging\install.ps1 [-InstallDir "путь"]
+```
+
+Копирует `packaging\dist\DiplomQuality\*` в `%LOCALAPPDATA%\Programs\DiplomQuality` (по умолчанию)
+и создаёт ярлык в меню «Пуск». Повторный запуск — обновление (перезаписывает файлы программы),
+пользовательские данные в `%LOCALAPPDATA%\DiplomQuality\data` не трогает.
+
+Удаление:
+
+```powershell
+.\packaging\uninstall.ps1 [-PurgeData] [-InstallDir "путь"]
+```
+
+По умолчанию данные сохраняются; с `-PurgeData` — удаляются.
+
+### Лаунчер замороженной сборки
+
+`packaging\run_diplom.py` принимает флаги:
+
+- `--host` (по умолчанию `127.0.0.1`)
+- `--port` (по умолчанию `8000`)
+- `--no-browser` (не открывать браузер автоматически)
+- `--version` (напечатать версию и выйти)
+- `--data-dir DIR` (задать каталог файла БД; файл будет `DIR\quality.sqlite3`)
 
 ## Переменная окружения DIPL2_DB
 
 Путь к файлу базы данных. Относительный путь разрешается от корня проекта
-(`PROJECT_DIR`); значение по умолчанию — `PROJECT_DIR / "data" / "quality.sqlite3"`.
-Путь вычисляет единственная функция `resolve_db_path()` в `app/config.py`.
+(`PROJECT_DIR`) вне замороженной сборки; в замороженной сборке относительный путь
+разрешается от родителя каталога данных (`%LOCALAPPDATA%\DiplomQuality`).
+Значение по умолчанию: вне сборки — `PROJECT_DIR / "data" / "quality.sqlite3"`,
+в замороженной сборке — `%LOCALAPPDATA%\DiplomQuality\data\quality.sqlite3`.
+Путь вычисляет функция `resolve_db_path()` в `app/config.py`.
 
 ```powershell
 $env:DIPL2_DB = "data/other.sqlite3"

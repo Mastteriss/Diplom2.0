@@ -16,6 +16,7 @@ from fastapi import Request
 from starlette.templating import Jinja2Templates
 
 from app.config import (
+    APP_VERSION,
     DEFAULT_MONTHS,
     MAX_MONTHS,
     MIN_MONTHS,
@@ -69,6 +70,7 @@ def base_context(conn, *, active, page_title) -> dict:
         "page_title": page_title,
         "active": active,
         "menu": MENU,
+        "app_version": APP_VERSION,
         "schema_version": schema_v,
         "weights_version": weights_v,
         "db_path": str(resolve_db_path()),
