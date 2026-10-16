@@ -498,3 +498,19 @@ python -m scripts.generate_demo_data [--products 10] [--batches-per-product 18]
 * Ни один агент не изменяет файлы вне своего списка.
 * Любое расхождение с `contract.md` → агент обязан ОСТАНОВИТЬСЯ и сообщить,
   а не «поправить».
+
+---
+
+## 11. Удалённый доступ (режим access key)
+
+10.1 Переменная окружения `DIPL2_ACCESS_KEY`. Если непустая — приложение
+переходит в защищённый режим: любой запрос, кроме `GET /login`, `POST /login`,
+`GET /logout`, `GET /static/*` и `GET /favicon.ico`, требует валидной сессии.
+10.2 Сессия — cookie `dipl2_session`, значение = HMAC-SHA256(ключ,
+"diplom-quality-session-v1") в hex. Флаги: HttpOnly, SameSite=Lax, Path=/,
+Max-Age=2592000.
+10.3 `GET /login` — форма ввода ключа. `POST /login` (поле `access_key`):
+неверный ключ → 401 и повторный рендер формы; верный → Set-Cookie сессии и
+303 на `/`. `GET /logout` удаляет cookie и делает 303 на `/login`.
+10.4 Ключ сравнивается через `hmac.compare_digest` (константное время).
+10.5 Если `DIPL2_ACCESS_KEY` пуста — защита выключена, поведение прежнее.

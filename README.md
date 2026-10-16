@@ -43,7 +43,7 @@ packaging/
   uninstall.ps1          fallback-деинсталлятор (PowerShell)
   README.md              заметки по упаковке (инструменты)
   DiplomQuality-Setup-*.exe  собранный установщик (при наличии)
-tests/                   тесты pytest (4 файла)
+tests/                   тесты pytest (5 файлов)
 tests_artifacts/         тестовые БД (создаются и удаляются при тестах)
 pytest.ini               конфигурация pytest (testpaths = tests)
 requirements.txt         зафиксированные зависимости
@@ -72,7 +72,7 @@ python -m scripts.generate_demo_data [--products 10] [--batches-per-product 18]
     [--db data/quality.sqlite3] [--force-reference]
 ```
 
-Тесты (4 файла в `tests/`):
+Тесты (5 файлов в `tests/`):
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
@@ -163,6 +163,50 @@ python -m scripts.generate_demo_data [--products 10] [--batches-per-product 18]
 - `--no-browser` (не открывать браузер автоматически)
 - `--version` (напечатать версию и выйти)
 - `--data-dir DIR` (задать каталог файла БД; файл будет `DIR\quality.sqlite3`)
+- `--remote` (защищённый режим: включает вход по ключу; если ключ не задан,
+  генерирует его через `secrets.token_urlsafe(24)` и печатает)
+- `--access-key KEY` (явный ключ доступа)
+- `--tunnel` (запустить быстрый туннель Cloudflare; требует ключ доступа)
+
+## Удалённый доступ (тоннель Cloudflare)
+
+По умолчанию приложение слушает `127.0.0.1` и доступно только на этом
+компьютере. Чтобы открыть его с другой машины или из интернета (демонстрация,
+филиал), лаунчер умеет поднимать быстрый туннель Cloudflare и защищать вход
+ключом доступа.
+
+Запуск из корня проекта (PowerShell):
+
+```powershell
+.\.venv\Scripts\python.exe packaging\run_diplom.py --remote --tunnel
+```
+
+В замороженной сборке — тот же набор флагов у `DiplomQuality.exe`:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\DiplomQuality\DiplomQuality.exe" --remote --tunnel
+```
+
+Порядок действий:
+
+1. `--remote` включает защищённый режим и, если ключ не задан, генерирует его.
+   Лаунчер печатает строку `Ключ доступа: ...` — скопируйте её.
+2. `--tunnel` запускает `cloudflared tunnel --url http://127.0.0.1:<port>` и
+   печатает строку `Публичный адрес: https://<...>.trycloudflare.com` — откройте
+   этот адрес.
+3. На странице `/login` введите ключ доступа. Сессия хранится в cookie
+   `dipl2_session` (30 суток).
+
+Учётная запись Cloudflare не нужна: быстрый туннель анонимный. Требуется
+`cloudflared` в `PATH`; если его нет, лаунчер напечатает инструкцию по установке
+и продолжит работу без туннеля.
+
+> **Не поднимайте туннель без ключа.** `--tunnel` без ключа доступа (`--remote`,
+> `--access-key` или `DIPL2_ACCESS_KEY`) отклоняется с кодом выхода 2: публичный
+> адрес без защиты открыл бы систему всем.
+
+Ключ можно задать заранее переменной окружения `DIPL2_ACCESS_KEY` — тогда
+достаточно `--tunnel` (см. ниже).
 
 ## Переменная окружения DIPL2_DB
 
@@ -177,6 +221,20 @@ python -m scripts.generate_demo_data [--products 10] [--batches-per-product 18]
 $env:DIPL2_DB = "data/other.sqlite3"
 ```
 
+## Переменная окружения DIPL2_ACCESS_KEY
+
+Ключ доступа к защищённому режиму. Если переменная задана и непуста, приложение
+требует вход по ключу; если не задана или пуста — защита выключена и поведение
+прежнее. Значение читает функция `get_access_key()` в `app/config.py`
+(константа `ACCESS_KEY_ENV`).
+
+```powershell
+$env:DIPL2_ACCESS_KEY = "пример-сгенерированного-ключа"
+```
+
+Лаунчер выставляет эту переменную сам при `--remote`/`--access-key`; ключ,
+унаследованный из окружения, в баннере не печатается.
+
 ## Маршруты
 
 Все пути корневые, без префиксов роутеров.
@@ -184,6 +242,9 @@ $env:DIPL2_DB = "data/other.sqlite3"
 | Метод | Путь | Что делает |
 |-------|------|------------|
 | GET | `/` | Главная: KPI-карточки, топ-5 дефектов, ссылки на разделы |
+| GET | `/login` | Форма входа (в защищённом режиме; иначе 303 на `/`) |
+| POST | `/login` | Проверка ключа: верный → 303 на `/` и cookie `dipl2_session`, неверный → 401 |
+| GET | `/logout` | Удаляет cookie сессии, 303 на `/login` |
 | GET | `/products` | Продукция: поиск, фильтр категории, пагинация |
 | GET | `/products/{id}` | Карточка продукции: показатели периода, индекс качества, последние партии (404 при отсутствии) |
 | GET | `/batches` | Партии: фильтры по статусу и продукции, пагинация |
@@ -248,4 +309,6 @@ $env:DIPL2_DB = "data/other.sqlite3"
 * ADR: [0001](docs/adr/0001-manual-form-parsing.md) — ручной разбор форм,
   [0002](docs/adr/0002-tolerances-as-normative.md) — допуски как норматив,
   [0003](docs/adr/0003-server-side-svg.md) — серверный SVG,
-  [0004](docs/adr/0004-sqlite-schema-no-migrations.md) — схема без миграций.
+  [0004](docs/adr/0004-sqlite-schema-no-migrations.md) — схема без миграций,
+  [0005](docs/adr/0005-windows-packaging-and-updates.md) — Windows-упаковка и обновления,
+  [0006](docs/adr/0006-remote-access-and-access-key.md) — удалённый доступ и ключ доступа.

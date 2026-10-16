@@ -1,11 +1,36 @@
-{% extends "base.html" %}
-
-{% block content %}
-<div class="card error-card">
-  <p class="error-message">{{ message }}</p>
-  <div class="form-actions">
-    <a class="btn btn-primary" href="/">На главную</a>
-    <a class="btn btn-ghost" href="/batches">К списку партий</a>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#22682a">
+  <title>{{ page_title }} — ИС анализа качества продукции</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2322682a'/%3E%3Cpath%20d='M5%2021.5a11%2011%200%200%201%2022%200'%20fill='none'%20stroke='%2347c3bc'%20stroke-width='2.6'%20stroke-linecap='round'/%3E%3Cpath%20d='M16%2021.5l5.4-8.6'%20fill='none'%20stroke='%2391c347'%20stroke-width='2.6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='16'%20cy='21.5'%20r='2.2'%20fill='%2391c347'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 34 34" width="32" height="32" aria-hidden="true" focusable="false">
+      <path d="M5 24a12 12 0 0 1 24 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <path class="mark-needle" d="M17 24l6-9.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <circle class="mark-hub" cx="17" cy="24" r="2.2" fill="currentColor"/>
+      <path d="M5.5 27.5h23" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+    </svg>
+    <span class="brand-title">ИС анализа качества продукции</span>
   </div>
-</div>
-{% endblock %}
+</header>
+
+<main class="content">
+  <h1 class="page-title">{{ page_title }}</h1>
+  <div class="card error-card">
+    <p class="error-message">{{ message }}</p>
+    <p class="lead">Код ошибки: {{ status_code }}</p>
+    <div class="form-actions">
+      <a class="btn btn-primary" href="/">На главную</a>
+      <a class="btn btn-ghost" href="/batches">К списку партий</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -44,6 +44,8 @@ FastAPI-приложение, маршруты, шаблоны и статика
 * `app/web/deps.py` — подключение слоёв B1 и B2.
 * `app/web/pages_*.py` — маршруты: `pages_index`, `pages_batches`,
   `pages_analysis`, `pages_config`, `pages_export`.
+* `app/web/auth.py` — защита удалённого доступа: middleware `AccessKeyMiddleware`,
+  маршруты `/login`/`/logout`, cookie `dipl2_session`.
 * `app/web/templates/` — Jinja2-шаблоны; `app/web/static/app.css` — стили.
 
 ### Общие модули контракта
@@ -72,6 +74,21 @@ FastAPI-приложение, маршруты, шаблоны и статика
   `DIPL2_DB` через `--data-dir`), при отсутствии файла БД копирует встроенный образец
   в пользовательский каталог, импортирует `app.main:app` как ASGI-объект и запускает
   `uvicorn` (один воркер).
+
+## Удалённый доступ
+
+Режим включается переменной окружения `DIPL2_ACCESS_KEY` (`app/config.py::get_access_key()`):
+если она непуста, `create_app()` добавляет middleware `app/web/auth.py::AccessKeyMiddleware`,
+и любой запрос, кроме `GET/POST /login`, `GET /logout`, `/static/*` и `/favicon.ico`,
+без валидной сессии получает 303 на `/login`. Сессия — cookie `dipl2_session`
+(HMAC-SHA256 от ключа, HttpOnly, SameSite=Lax, 30 суток). Если переменная пуста,
+middleware не добавляется и поведение прежнее. Подробности — `docs/contract.md` §11.
+
+Лаунчер `packaging/run_diplom.py` умеет поднимать публичный доступ: `--remote`
+включает защиту и при необходимости генерирует ключ, `--tunnel` запускает быстрый
+туннель Cloudflare (`cloudflared tunnel --url http://127.0.0.1:<port>`) и печатает
+публичный адрес `https://<...>.trycloudflare.com`. Туннель без ключа отклоняется
+(код выхода 2).
 
 ## Швы
 

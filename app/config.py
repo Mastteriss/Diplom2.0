@@ -29,6 +29,7 @@ APP_DIR: Path = Path(__file__).resolve().parent
 PROJECT_DIR: Path = APP_DIR.parent
 
 ENV_DB_PATH: str = "DIPL2_DB"
+ACCESS_KEY_ENV: str = "DIPL2_ACCESS_KEY"
 
 
 def is_frozen() -> bool:
@@ -93,6 +94,13 @@ def ensure_data_dir() -> Path:
     data_dir = resolve_db_path().parent
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
+
+
+def get_access_key() -> str | None:
+    """Ключ доступа из DIPL2_ACCESS_KEY (без крайних пробелов); None, если
+    переменная не задана или пуста — тогда защита выключена."""
+    raw = (os.environ.get(ACCESS_KEY_ENV) or "").strip()
+    return raw or None
 
 
 # --- Размеры выборок и периода -------------------------------------------
